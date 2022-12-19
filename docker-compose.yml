@@ -1,0 +1,53 @@
+version: '3'
+services:
+  django-app:
+    build: .
+    restart: always
+    volumes:
+      - .:/django
+    ports:
+      - 4000:4000
+    command: poetry run python manage.py runserver 0.0.0.0:4000
+    depends_on:
+      - db
+      - redis  
+    env_file:
+      - .env
+
+      
+  nginx:
+    image: nginx:stable-alpine
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - django-app
+      
+  db:
+    build:
+      context: .
+      dockerfile: ./docker/mysql/Dockerfile
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    env_file:
+      - .env
+      
+    ports:
+      - "3306:3306"
+      
+  redis:
+    image: redis
+    restart: always
+    volumes:
+        - redis_data:/data
+    ports:
+      - '6379:6379'
+    command: redis-server --requirepass secret
+      
+volumes:
+  mysql_data:
+  redis_data:
+
+    
